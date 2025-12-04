@@ -515,7 +515,9 @@ ui <- dashboardPage(
             solidHeader = TRUE,
             collapsible = FALSE,
             h3("Financial Impact Analysis with Bootstrapped Confidence Intervals"),
-            tags$p("This analysis identifies stations that would benefit most from dock expansion based on high average ridership and high variability (CV)."),
+            tags$p("This analysis identifies stations that would benefit most from dock expansion. ", 
+                   tags$strong("Only stations with high variability (CV > 50%) are considered."), 
+                   " These stations have capacity constraints where trips are being lost due to dock availability."),
             tags$p("The bootstrap method provides confidence intervals for the estimated financial impact of expanding docks at recommended stations."),
             br(),
             h4("Analysis Parameters"),
@@ -545,10 +547,10 @@ ui <- dashboardPage(
             ),
             br(),
             tags$p(tags$strong("How Coefficient of Variation (CV) is Used:"), 
-                   "CV measures process variability. Higher CV (>50%) indicates stations with capacity constraints where trips are being lost. ",
-                   "The analysis estimates lost trips based on CV: stations with CV 30-50% lose 0-5% of potential trips, ",
-                   "CV 50-70% lose 5-10%, CV 70-100% lose 10-15%, and CV >100% lose up to 25% of potential trips. ",
-                   "By expanding docks at high-CV stations, we can recover a portion of these lost trips.")
+                   "CV measures process variability. Only stations with CV > 50% are included in recommendations, as these indicate capacity constraints. ", 
+                   "The analysis estimates lost trips based on CV: stations with CV 50-70% lose 5-10% of potential trips, ", 
+                   "CV 70-100% lose 10-15%, and CV >100% lose up to 25% of potential trips. ", 
+                   "By expanding docks at these high-CV stations, we can recover a portion of these lost trips.")
           )
         ),
         fluidRow(
@@ -1272,56 +1274,11 @@ server <- function(input, output, session) {
       
       if (nrow(station_summary) == 0) return(NULL)
       
-      # Filter candidate stations for expansion - more flexible criteria
-      # Try multiple strategies to find candidates
-      quantile_75 <- quantile(station_summary$avg_daily_trips, 0.75, na.rm = TRUE)
-      quantile_50 <- quantile(station_summary$avg_daily_trips, 0.50, na.rm = TRUE)
-      
-      # Strategy 1: Top 25% busiest, high CV (>50%), and reasonable inflow ratio
+      # Filter candidate stations: ONLY stations with high CV (>50%)
+      # High CV indicates capacity constraints and need for expansion
       dock_candidates <- station_summary %>%
-        dplyr::filter(
-          avg_daily_trips >= quantile_75,
-          avg_cv > 50,
-          inflow_ratio > 0.15
-        ) %>%
+        dplyr::filter(avg_cv > 50) %>%
         dplyr::arrange(desc(avg_cv), desc(avg_daily_trips))
-      
-      # Strategy 2: If no candidates, relax to top 25% with CV > 50
-      if (nrow(dock_candidates) == 0) {
-        dock_candidates <- station_summary %>%
-          dplyr::filter(
-            avg_daily_trips >= quantile_75,
-            avg_cv > 50
-          ) %>%
-          dplyr::arrange(desc(avg_cv), desc(avg_daily_trips)) %>%
-          head(20)  # Take top 20
-      }
-      
-      # Strategy 3: If still no candidates, use top 50% with CV > 40
-      if (nrow(dock_candidates) == 0) {
-        dock_candidates <- station_summary %>%
-          dplyr::filter(
-            avg_daily_trips >= quantile_50,
-            avg_cv > 40
-          ) %>%
-          dplyr::arrange(desc(avg_cv), desc(avg_daily_trips)) %>%
-          head(20)
-      }
-      
-      # Strategy 4: If still no candidates, just take top stations by CV and ridership
-      if (nrow(dock_candidates) == 0) {
-        dock_candidates <- station_summary %>%
-          dplyr::filter(avg_cv > 30) %>%
-          dplyr::arrange(desc(avg_cv), desc(avg_daily_trips)) %>%
-          head(15)
-      }
-      
-      # Final fallback: take top stations regardless of CV if we have any data
-      if (nrow(dock_candidates) == 0 && nrow(station_summary) > 0) {
-        dock_candidates <- station_summary %>%
-          dplyr::arrange(desc(avg_daily_trips), desc(avg_cv)) %>%
-          head(if (is.null(input$num_stops)) 10 else input$num_stops)
-      }
       
       if (nrow(dock_candidates) == 0) return(NULL)
       
@@ -1371,6 +1328,12 @@ server <- function(input, output, session) {
           net_gain = est_revenue_gain - annualized_cost
         )
       
+      # Limit to top N stations based on num_stops input, sorted by net_gain
+      num_stops <- if (is.null(input$num_stops) || is.na(input$num_stops)) 10 else input$num_stops
+      dock_candidates <- dock_candidates %>%
+        dplyr::arrange(desc(net_gain)) %>%
+        head(num_stops)
+      
       return(dock_candidates)
     }, error = function(e) {
       # Return error message for debugging
@@ -1384,7 +1347,7 @@ server <- function(input, output, session) {
   output$bootstrap_summary_text <- renderText({
     candidates <- bootstrap_analysis()
     if (is.null(candidates) || nrow(candidates) == 0) {
-      return("No candidate stations found for analysis. Please ensure data is loaded and stations meet the criteria (high ridership, high CV > 50%).")
+      return("No candidate stations found for analysis. Please ensure data is loaded and stations meet the criteria (high CV > 50% required for recommendations).")
     }
     
     total_net <- sum(candidates$net_gain, na.rm = TRUE)
@@ -1561,19 +1524,17 @@ server <- function(input, output, session) {
     }
     
     tryCatch({
+      # Candidates are already filtered to top N and sorted by net_gain from bootstrap_analysis()
       num_stops <- if (is.null(input$num_stops)) 10 else input$num_stops
-      top_recommendations <- candidates %>%
-        dplyr::arrange(desc(net_gain)) %>%
-        head(num_stops)
       
-      if (nrow(top_recommendations) == 0) {
+      if (nrow(candidates) == 0) {
         return(plot_ly() %>% 
                add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
                layout(title = "No recommendations",
-                      annotations = list(text = "No stations meet the criteria.", showarrow = FALSE)))
+                      annotations = list(text = "No stations meet the criteria (CV > 50% required).", showarrow = FALSE)))
       }
       
-      top_recommendations <- top_recommendations %>%
+      top_recommendations <- candidates %>%
         dplyr::mutate(
           station_label = paste0("Station ", station_id)
         )
@@ -1738,10 +1699,8 @@ server <- function(input, output, session) {
       return(DT::datatable(data.frame(Message = "No candidate stations found")))
     }
     
-    num_stops <- if (is.null(input$num_stops)) 10 else input$num_stops
+    # Candidates are already filtered to top N and sorted by net_gain from bootstrap_analysis()
     recommendations <- candidates %>%
-      dplyr::arrange(desc(net_gain)) %>%
-      head(num_stops) %>%
       dplyr::select(station_id, avg_daily_trips, avg_cv, inflow_ratio, estimated_docks, 
                     added_docks, new_capacity, est_recovered_trips, est_revenue_gain, annualized_cost, net_gain) %>%
       dplyr::mutate(
