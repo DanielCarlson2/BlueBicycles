@@ -238,7 +238,7 @@ ui <- dashboardPage(
             status = "info", 
             solidHeader = TRUE,
             collapsible = FALSE,
-            tags$img(src = "images/SIPOC.png", width = "100%", style = "border: 1px solid #ddd;")
+            tags$img(src = "Images/SIPOC.png", width = "100%", style = "border: 1px solid #ddd;")
           ),
           box(
             width = 6,
@@ -246,7 +246,7 @@ ui <- dashboardPage(
             status = "info", 
             solidHeader = TRUE,
             collapsible = FALSE,
-            tags$img(src = "images/ProcessMap.png", width = "100%", style = "border: 1px solid #ddd;")
+            tags$img(src = "Images/ProcessMap.png", width = "100%", style = "border: 1px solid #ddd;")
           )
         )
       ),
@@ -352,7 +352,7 @@ ui <- dashboardPage(
             status = "success", 
             solidHeader = TRUE,
             collapsible = FALSE,
-            h3("Top 10 Stations Recommended for Dock Expansion"),
+            h3("Top Stations Recommended for Dock Expansion"),
             tags$p("Based on bootstrap analysis: stations with high ridership, high variability (CV > 50%), and positive net financial impact."),
             plotlyOutput("bootstrap_recommendations_plot", height = "500px")
           )
@@ -422,7 +422,7 @@ ui <- dashboardPage(
             status = "info", 
             solidHeader = TRUE,
             collapsible = FALSE,
-            tags$img(src = "images/VOC.png", width = "100%", style = "border: 1px solid #ddd;")
+            tags$img(src = "Images/VOC.png", width = "100%", style = "border: 1px solid #ddd;")
           )
         )
       ),
@@ -507,7 +507,39 @@ ui <- dashboardPage(
             collapsible = FALSE,
             h3("Financial Impact Analysis with Bootstrapped Confidence Intervals"),
             tags$p("This analysis identifies stations that would benefit most from dock expansion based on high average ridership and high variability (CV)."),
-            tags$p("The bootstrap method provides confidence intervals for the estimated financial impact of expanding docks at recommended stations.")
+            tags$p("The bootstrap method provides confidence intervals for the estimated financial impact of expanding docks at recommended stations."),
+            br(),
+            h4("Analysis Parameters"),
+            fluidRow(
+              column(4,
+                selectInput("bootstrap_year", 
+                           "Select Year for Analysis:", 
+                           choices = NULL,
+                           selected = NULL)
+              ),
+              column(4,
+                numericInput("num_stops", 
+                           "Number of Top Stations to Recommend:", 
+                           value = 10,
+                           min = 1,
+                           max = 50,
+                           step = 1)
+              ),
+              column(4,
+                numericInput("docks_added_pct", 
+                           "Percentage of Current Docks to Add:", 
+                           value = 50,
+                           min = 10,
+                           max = 200,
+                           step = 10)
+              )
+            ),
+            br(),
+            tags$p(tags$strong("How Coefficient of Variation (CV) is Used:"), 
+                   "CV measures process variability. Higher CV (>50%) indicates stations with capacity constraints where trips are being lost. ",
+                   "The analysis estimates lost trips based on CV: stations with CV 30-50% lose 0-5% of potential trips, ",
+                   "CV 50-70% lose 5-10%, CV 70-100% lose 10-15%, and CV >100% lose up to 25% of potential trips. ",
+                   "By expanding docks at high-CV stations, we can recover a portion of these lost trips.")
           )
         ),
         fluidRow(
@@ -570,7 +602,7 @@ ui <- dashboardPage(
             collapsible = FALSE,
             plotlyOutput("bootstrap_roi_plot", height = "400px")
           )
-        ),
+        )
       ),
       
       # Tab 9: References
@@ -590,17 +622,11 @@ ui <- dashboardPage(
     )
   )
 )
-
 # Server Definition
 server <- function(input, output, session) {
   
   # Add resource path for images
-  addResourcePath("images", "Images")
-  
-  ################################################################################
-  # Helper function to read CSV files with warnings suppressed
-  ################################################################################
-  
+  addResourcePath("Images", "Images")
   read_csv_silent <- function(file_path) {
     # Temporarily suppress warnings
     old_warn <- options(warn = -1)$warn
@@ -632,12 +658,16 @@ server <- function(input, output, session) {
     sort(years[!is.na(years)])
   })
   
-  # Update year selector
+  # Update year selectors
   observe({
     years <- available_years()
     if (length(years) > 0) {
+      year_choices <- c("All Years" = "all", setNames(years, years))
       updateSelectInput(session, "spc_year", 
-                       choices = c("All Years" = "all", setNames(years, years)),
+                       choices = year_choices,
+                       selected = ifelse(length(years) > 0, max(years), "all"))
+      updateSelectInput(session, "bootstrap_year", 
+                       choices = year_choices,
                        selected = ifelse(length(years) > 0, max(years), "all"))
     }
   })
@@ -1020,13 +1050,12 @@ server <- function(input, output, session) {
         geom_hline(yintercept = 50, linetype = "dashed", color = "red") +
         scale_color_manual(values = c("AM" = "#E69F00", "PM" = "#56B4E9"),
                            name = "Rush Period") +
-        scale_x_log10() +
         annotate("text", x = max(stats$mean_rides, na.rm = TRUE), y = 55, 
                  label = "High Variability Zone", color = "red", hjust = 1) +
         labs(
           title = "Process Capability: Mean vs Variability",
           subtitle = "Higher volume doesn't always mean more stability",
-          x = "Average Daily Rides (log scale)",
+          x = "Average Daily Rides",
           y = "Coefficient of Variation (%)"
         ) +
         theme_minimal(base_size = 11) +
@@ -1111,9 +1140,64 @@ server <- function(input, output, session) {
   
   # Bootstrap analysis for dock expansion - simplified version using SPC stats
   bootstrap_analysis <- reactive({
-    stats <- spc_stats()
-    data <- selected_year_data()
-    if (is.null(stats) || nrow(stats) == 0 || is.null(data) || nrow(data) == 0) {
+    # Get year selection for bootstrap (use bootstrap_year if available, otherwise spc_year)
+    bootstrap_year <- if (is.null(input$bootstrap_year)) input$spc_year else input$bootstrap_year
+    
+    # Get data for selected year
+    if (is.null(bootstrap_year) || bootstrap_year == "all") {
+      data <- all_years_data()
+    } else {
+      file_path <- paste0("DataCSV/BlueBikes_", bootstrap_year, ".csv")
+      if (file.exists(file_path)) {
+        tryCatch({
+          data <- read_csv_silent(file_path)
+        }, error = function(e) {
+          return(NULL)
+        })
+      } else {
+        return(NULL)
+      }
+    }
+    
+    if (is.null(data) || nrow(data) == 0) {
+      return(NULL)
+    }
+    
+    # Calculate SPC stats for the selected year
+    required_cols <- c("Is_Weekend", "Month", "Start_Station_Code", "Rush_Period", "Number_of_Rides")
+    missing_cols <- required_cols[!required_cols %in% names(data)]
+    
+    if (length(missing_cols) > 0) {
+      return(NULL)
+    }
+    
+    # Calculate SPC stats
+    tryCatch({
+      data_filtered <- data %>%
+        dplyr::filter(!Is_Weekend, !Month %in% c(12, 1, 2))
+      
+      if (nrow(data_filtered) == 0) return(NULL)
+      
+      station_stats <- data_filtered %>%
+        dplyr::group_by(Start_Station_Code, Rush_Period) %>%
+        dplyr::summarise(
+          n_days = n(),
+          mean_rides = mean(Number_of_Rides, na.rm = TRUE),
+          sd_rides = sd(Number_of_Rides, na.rm = TRUE),
+          .groups = "drop"
+        ) %>%
+        dplyr::filter(n_days >= 30, !is.na(mean_rides), !is.na(sd_rides), mean_rides > 0) %>%
+        dplyr::mutate(
+          CV = (sd_rides / mean_rides) * 100
+        ) %>%
+        dplyr::filter(!is.na(CV))
+      
+      stats <- station_stats
+    }, error = function(e) {
+      return(NULL)
+    })
+    
+    if (is.null(stats) || nrow(stats) == 0) {
       return(NULL)
     }
     
@@ -1227,7 +1311,7 @@ server <- function(input, output, session) {
       if (nrow(dock_candidates) == 0 && nrow(station_summary) > 0) {
         dock_candidates <- station_summary %>%
           dplyr::arrange(desc(avg_daily_trips), desc(avg_cv)) %>%
-          head(10)
+          head(if (is.null(input$num_stops)) 10 else input$num_stops)
       }
       
       if (nrow(dock_candidates) == 0) return(NULL)
@@ -1235,7 +1319,7 @@ server <- function(input, output, session) {
       # Estimate expansion impact per station
       dock_candidates <- dock_candidates %>%
         dplyr::mutate(
-          added_docks = round(estimated_docks * 0.5),
+          added_docks = round(estimated_docks * (if (is.null(input$docks_added_pct)) 0.5 else input$docks_added_pct / 100)),
           new_capacity = estimated_docks + added_docks,
           # Estimate lost trips based on CV: higher CV indicates more capacity issues
           # For stations with high CV (>50%), estimate that some trips are being lost due to capacity
@@ -1468,9 +1552,10 @@ server <- function(input, output, session) {
     }
     
     tryCatch({
+      num_stops <- if (is.null(input$num_stops)) 10 else input$num_stops
       top_recommendations <- candidates %>%
         dplyr::arrange(desc(net_gain)) %>%
-        head(10)
+        head(num_stops)
       
       if (nrow(top_recommendations) == 0) {
         return(plot_ly() %>% 
@@ -1488,7 +1573,7 @@ server <- function(input, output, session) {
         geom_col(fill = "steelblue", alpha = 0.8) +
         coord_flip() +
         labs(
-          title = "Top 10 Stations Recommended for Dock Expansion",
+          title = paste0("Top ", if (is.null(input$num_stops)) 10 else input$num_stops, " Stations Recommended for Dock Expansion"),
           subtitle = "Based on high ridership, high variability, and estimated financial impact",
           x = "Station",
           y = "Estimated Net Annual Gain (USD)"
@@ -1644,8 +1729,10 @@ server <- function(input, output, session) {
       return(DT::datatable(data.frame(Message = "No candidate stations found")))
     }
     
+    num_stops <- if (is.null(input$num_stops)) 10 else input$num_stops
     recommendations <- candidates %>%
       dplyr::arrange(desc(net_gain)) %>%
+      head(num_stops) %>%
       dplyr::select(station_id, avg_daily_trips, avg_cv, inflow_ratio, estimated_docks, 
                     added_docks, new_capacity, est_recovered_trips, est_revenue_gain, annualized_cost, net_gain) %>%
       dplyr::mutate(
