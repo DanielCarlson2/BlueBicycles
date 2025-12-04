@@ -53,6 +53,8 @@ ui <- dashboardPage(
     sidebarMenu(
       id = "tabs",
       menuItem("Project Overview", tabName = "overview", icon = icon("info-circle")),
+      menuItem("Research Question", tabName = "research", icon = icon("question-circle")),
+      menuItem("Data", tabName = "data", icon = icon("database")),
       menuItem("Method", tabName = "method", icon = icon("flask")),
       menuItem("Statistical Process Control", tabName = "spc", icon = icon("chart-bar")),
       menuItem("Bootstrap Analysis", tabName = "bootstrap", icon = icon("calculator")),
@@ -98,7 +100,7 @@ ui <- dashboardPage(
     
     tabItems(
       
-      # Tab 1: Project Overview (Consolidated with Research Question and Data)
+      # Tab 1: Project overview, teammembers & credits 
       tabItem(
         tabName = "overview",
         fluidRow(
@@ -113,11 +115,17 @@ ui <- dashboardPage(
             h3("Course & Team"),
             tags$ul(
               tags$li(tags$strong("Course:"), "SYSEN 5300: Systems Engineering and Six Sigma"),
-              tags$li(tags$strong("Project Activity:"), "Rough Draft"),
-              tags$li(tags$strong("Team:"), "Daniel Carlson (Project Lead), Nevin Motto (Project Manager), Rene Umeh (Visualization), Charlie Gagliardo (Modeler 1), Evelyne Morisseau (Modeler 2)")
+              tags$li(tags$strong("Project Activity:"), "Poster Presentation"),
+              tags$li(tags$strong("Team:"), "Daniel Carlson (Project Lead), Nevin Motto (Project Manager), Rene Umeh (Visualization), Charlie Gagliardo (Modeler 1), Evelyne Morisseau (Modeler 2)"),
+              tags$li(tags$strong("Semester:"), "Fall 2025"),
+              tags$li(tags$strong("Teaching staff:"), "Professor Timothy Fraser & Teaching Assistant Tolkien Bagchi"),
             )
           )
-        ),
+        )
+      ),
+      # Tab 2: Research question, background, project goal, and primary research question
+      tabItem(
+        tabName = "research",
         fluidRow(
           box(
             width = 12,
@@ -134,12 +142,16 @@ ui <- dashboardPage(
             ),
             br(),
             h3("Project Goal"),
-            tags$p(tags$strong("Using BlueBikes ride data, can we predict the best locations to expand the number of bike docks and new stations to improve the availability of bikes available to users and BlueBike’s revenue. "), style = "font-size: 16px;"),
+            tags$p(tags$strong("Using BlueBikes ride data, we predict the best locations to expand the number of bike docks and new stations to improve the availability of bikes available to users and BlueBike’s revenue. "), style = "font-size: 16px;"),
             br(),
             h3("Primary Research Question"),
             tags$p(tags$strong("What are the best locations to add the planned additional docks and stations, and how much additional revenue would be generated?"), style = "font-size: 16px;"),
           )
-        ),
+        )
+      ),
+      # Tab 3: Data sources, data processing, and key measures
+      tabItem(
+        tabName = "data",
         fluidRow(
           box(
             width = 12,
