@@ -125,22 +125,19 @@ ui <- dashboardPage(
             status = "primary", 
             solidHeader = TRUE,
             collapsible = TRUE,
-            h3("Primary Research Question"),
-            tags$p(tags$strong("What happens if we add a stop?"), style = "font-size: 16px;"),
-            br(),
-            h3("Outcome Variable"),
+            h3("Background"),
             tags$ul(
-              tags$li("Number of Bike Stops"),
-              tags$li("Unit of Observation: N = 1 ride")
+              tags$li("Boston BlueBikes is a city wide bike-share system providing sustainable transportation through an intricate network of strategically located bike stations throughout the city."),
+              tags$li("During peak commuting hours,bikes are disproportionally displaced and thus unavailable to riders in parts of the city. To address this, the city of Boston has plans to expand the BlueBikes station network by 2030."),
+              tags$li("We will create a tool to identify stations and areas that are consistently over/under-utilized to determine where additional bikes and stations are most needed."),
+              tags$li("We will improve BlueBikes’ financial decisions by connecting station performance and bike demand to missed ride revenue and station installation costs. ")
             ),
             br(),
-            h3("Research Objectives"),
-            tags$ul(
-              tags$li("Identify optimal locations for new BlueBikes stations"),
-              tags$li("Assess impact of station additions on ridership and availability"),
-              tags$li("Quantify financial benefits of strategic station placement"),
-              tags$li("Provide data-driven recommendations for 64 planned stations by 2030")
-            )
+            h3("Project Goal"),
+            tags$p(tags$strong("Using BlueBikes ride data, can we predict the best locations to expand the number of bike docks and new stations to improve the availability of bikes available to users and BlueBike’s revenue. "), style = "font-size: 16px;"),
+            br(),
+            h3("Primary Research Question"),
+            tags$p(tags$strong("What are the best locations to add the planned additional docks and stations, and how much additional revenue would be generated?"), style = "font-size: 16px;"),
           )
         ),
         fluidRow(
