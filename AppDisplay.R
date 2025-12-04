@@ -1168,8 +1168,8 @@ server <- function(input, output, session) {
           avg_daily_trips > 0
         ) %>%
         dplyr::mutate(
-          # Estimate total docks (using average rides as proxy)
-          estimated_docks = pmax(10, pmin(50, round(avg_daily_trips * 5)))
+          # Assume fixed 19 docks per station
+          estimated_docks = 19
         )
       
       if (nrow(station_summary) == 0) return(NULL)
@@ -1177,14 +1177,12 @@ server <- function(input, output, session) {
       # Filter candidate stations for expansion
       # Top 25% busiest, high CV (>50%), and reasonable inflow ratio
       quantile_75 <- quantile(station_summary$avg_daily_trips, 0.75, na.rm = TRUE)
-      median_docks <- median(station_summary$estimated_docks, na.rm = TRUE)
       
       dock_candidates <- station_summary %>%
         dplyr::filter(
           avg_daily_trips >= quantile_75,
           avg_cv > 50,
-          inflow_ratio > 0.15,
-          estimated_docks < median_docks
+          inflow_ratio > 0.15
         ) %>%
         dplyr::arrange(desc(avg_cv), desc(avg_daily_trips))
       
