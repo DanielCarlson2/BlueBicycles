@@ -746,7 +746,7 @@ server <- function(input, output, session) {
   output$global_rides_plot <- renderPlotly({
     all_data <- all_years_data()
     if (is.null(all_data) || nrow(all_data) == 0) {
-      return(plotly_empty() %>% layout(title = "No data available"))
+      return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = "No data available"))
     }
     
     # Check if required columns exist
@@ -754,7 +754,7 @@ server <- function(input, output, session) {
     missing_cols <- required_cols[!required_cols %in% names(all_data)]
     
     if (length(missing_cols) > 0) {
-      return(plotly_empty() %>% layout(title = paste("Missing columns:", paste(missing_cols, collapse = ", "))))
+      return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = paste("Missing columns:", paste(missing_cols, collapse = ", "))))
     }
     
     tryCatch({
@@ -764,7 +764,7 @@ server <- function(input, output, session) {
         dplyr::summarise(Total_Rides = sum(Number_of_Rides, na.rm = TRUE), .groups = "drop")
       
       if (nrow(yearly_summary) == 0) {
-        return(plotly_empty() %>% layout(title = "No data available after aggregation"))
+        return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = "No data available after aggregation"))
       }
       
       p <- ggplot(yearly_summary, aes(x = Year, y = Total_Rides, fill = Rush_Period)) +
@@ -781,7 +781,7 @@ server <- function(input, output, session) {
       
       return(ggplotly(p))
     }, error = function(e) {
-      return(plotly_empty() %>% layout(title = paste("Error:", e$message)))
+      return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = paste("Error:", e$message)))
     })
   })
   
@@ -789,13 +789,13 @@ server <- function(input, output, session) {
   output$am_variability_bars <- renderPlotly({
     stats <- spc_stats()
     if (is.null(stats) || nrow(stats) == 0) {
-      return(plotly_empty() %>% layout(title = "No data available"))
+      return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = "No data available"))
     }
     
     tryCatch({
       am_stats <- stats %>% dplyr::filter(Rush_Period == "AM")
       if (nrow(am_stats) == 0) {
-        return(plotly_empty() %>% layout(title = "No AM data available"))
+        return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = "No AM data available"))
       }
       
       category_summary <- am_stats %>%
@@ -809,7 +809,7 @@ server <- function(input, output, session) {
         )
       
       if (nrow(category_summary) == 0) {
-        return(plotly_empty() %>% layout(title = "No data available after processing"))
+        return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = "No data available after processing"))
       }
       
       p <- ggplot(category_summary, aes(x = Variability_Category, y = Count, fill = Variability_Category)) +
@@ -831,7 +831,7 @@ server <- function(input, output, session) {
       
       return(ggplotly(p))
     }, error = function(e) {
-      return(plotly_empty() %>% layout(title = paste("Error:", e$message)))
+      return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = paste("Error:", e$message)))
     })
   })
   
@@ -839,13 +839,13 @@ server <- function(input, output, session) {
   output$pm_variability_bars <- renderPlotly({
     stats <- spc_stats()
     if (is.null(stats) || nrow(stats) == 0) {
-      return(plotly_empty() %>% layout(title = "No data available"))
+      return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = "No data available"))
     }
     
     tryCatch({
       pm_stats <- stats %>% dplyr::filter(Rush_Period == "PM")
       if (nrow(pm_stats) == 0) {
-        return(plotly_empty() %>% layout(title = "No PM data available"))
+        return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = "No PM data available"))
       }
       
       category_summary <- pm_stats %>%
@@ -859,7 +859,7 @@ server <- function(input, output, session) {
         )
       
       if (nrow(category_summary) == 0) {
-        return(plotly_empty() %>% layout(title = "No data available after processing"))
+        return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = "No data available after processing"))
       }
       
       p <- ggplot(category_summary, aes(x = Variability_Category, y = Count, fill = Variability_Category)) +
@@ -881,7 +881,7 @@ server <- function(input, output, session) {
       
       return(ggplotly(p))
     }, error = function(e) {
-      return(plotly_empty() %>% layout(title = paste("Error:", e$message)))
+      return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = paste("Error:", e$message)))
     })
   })
   
@@ -966,7 +966,7 @@ server <- function(input, output, session) {
   output$top_stations_comparison <- renderPlotly({
     stats <- spc_stats()
     if (is.null(stats) || nrow(stats) == 0) {
-      return(plotly_empty() %>% layout(title = "No data available"))
+      return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = "No data available"))
     }
     
     tryCatch({
@@ -982,7 +982,7 @@ server <- function(input, output, session) {
         dplyr::filter(Start_Station_Code %in% top_stations_list)
       
       if (nrow(comparison_data) == 0) {
-        return(plotly_empty() %>% layout(title = "No data available"))
+        return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = "No data available"))
       }
       
       p <- ggplot(comparison_data, 
@@ -1003,7 +1003,7 @@ server <- function(input, output, session) {
       
       return(ggplotly(p))
     }, error = function(e) {
-      return(plotly_empty() %>% layout(title = paste("Error:", e$message)))
+      return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = paste("Error:", e$message)))
     })
   })
   
@@ -1011,7 +1011,7 @@ server <- function(input, output, session) {
   output$mean_vs_cv_plot <- renderPlotly({
     stats <- spc_stats()
     if (is.null(stats) || nrow(stats) == 0) {
-      return(plotly_empty() %>% layout(title = "No data available"))
+      return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = "No data available"))
     }
     
     tryCatch({
@@ -1034,7 +1034,7 @@ server <- function(input, output, session) {
       
       return(ggplotly(p))
     }, error = function(e) {
-      return(plotly_empty() %>% layout(title = paste("Error:", e$message)))
+      return(plot_ly() %>% add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>% layout(title = paste("Error:", e$message)))
     })
   })
   
@@ -1143,8 +1143,10 @@ server <- function(input, output, session) {
           n_days = n(),
           .groups = "drop"
         ) %>%
-        dplyr::filter(n_days >= 30) %>%  # Require at least 30 days of data
+        dplyr::filter(n_days >= 10) %>%  # Reduced from 30 to 10 days for more flexibility
         dplyr::rename(station_id = Start_Station_Code)
+      
+      if (nrow(station_usage) == 0) return(NULL)
       
       # Use CV as proxy for imbalance frequency (high CV = high variability = more likely to have capacity issues)
       imbalance_freq <- stats %>%
@@ -1160,12 +1162,15 @@ server <- function(input, output, session) {
         ) %>%
         dplyr::rename(station_id = Start_Station_Code)
       
+      if (nrow(imbalance_freq) == 0) return(NULL)
+      
       # Merge station info
       station_summary <- station_usage %>%
         dplyr::left_join(imbalance_freq, by = "station_id") %>%
         dplyr::filter(
           !is.na(avg_cv),
-          avg_daily_trips > 0
+          avg_daily_trips > 0,
+          avg_cv > 0
         ) %>%
         dplyr::mutate(
           # Assume fixed 19 docks per station
@@ -1174,10 +1179,12 @@ server <- function(input, output, session) {
       
       if (nrow(station_summary) == 0) return(NULL)
       
-      # Filter candidate stations for expansion
-      # Top 25% busiest, high CV (>50%), and reasonable inflow ratio
+      # Filter candidate stations for expansion - more flexible criteria
+      # Try multiple strategies to find candidates
       quantile_75 <- quantile(station_summary$avg_daily_trips, 0.75, na.rm = TRUE)
+      quantile_50 <- quantile(station_summary$avg_daily_trips, 0.50, na.rm = TRUE)
       
+      # Strategy 1: Top 25% busiest, high CV (>50%), and reasonable inflow ratio
       dock_candidates <- station_summary %>%
         dplyr::filter(
           avg_daily_trips >= quantile_75,
@@ -1186,8 +1193,8 @@ server <- function(input, output, session) {
         ) %>%
         dplyr::arrange(desc(avg_cv), desc(avg_daily_trips))
       
+      # Strategy 2: If no candidates, relax to top 25% with CV > 50
       if (nrow(dock_candidates) == 0) {
-        # If no candidates with all criteria, relax constraints
         dock_candidates <- station_summary %>%
           dplyr::filter(
             avg_daily_trips >= quantile_75,
@@ -1195,6 +1202,32 @@ server <- function(input, output, session) {
           ) %>%
           dplyr::arrange(desc(avg_cv), desc(avg_daily_trips)) %>%
           head(20)  # Take top 20
+      }
+      
+      # Strategy 3: If still no candidates, use top 50% with CV > 40
+      if (nrow(dock_candidates) == 0) {
+        dock_candidates <- station_summary %>%
+          dplyr::filter(
+            avg_daily_trips >= quantile_50,
+            avg_cv > 40
+          ) %>%
+          dplyr::arrange(desc(avg_cv), desc(avg_daily_trips)) %>%
+          head(20)
+      }
+      
+      # Strategy 4: If still no candidates, just take top stations by CV and ridership
+      if (nrow(dock_candidates) == 0) {
+        dock_candidates <- station_summary %>%
+          dplyr::filter(avg_cv > 30) %>%
+          dplyr::arrange(desc(avg_cv), desc(avg_daily_trips)) %>%
+          head(15)
+      }
+      
+      # Final fallback: take top stations regardless of CV if we have any data
+      if (nrow(dock_candidates) == 0 && nrow(station_summary) > 0) {
+        dock_candidates <- station_summary %>%
+          dplyr::arrange(desc(avg_daily_trips), desc(avg_cv)) %>%
+          head(10)
       }
       
       if (nrow(dock_candidates) == 0) return(NULL)
@@ -1219,6 +1252,7 @@ server <- function(input, output, session) {
     }, error = function(e) {
       # Return error message for debugging
       cat("Bootstrap analysis error:", e$message, "\n")
+      cat("Stack trace:", paste(capture.output(traceback()), collapse = "\n"), "\n")
       return(NULL)
     })
   })
@@ -1278,14 +1312,16 @@ server <- function(input, output, session) {
   output$bootstrap_histogram <- renderPlotly({
     candidates <- bootstrap_analysis()
     if (is.null(candidates) || nrow(candidates) == 0) {
-      return(plotly_empty() %>% 
+      return(plot_ly() %>% 
+             add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
              layout(title = "No data available", 
                     annotations = list(text = "No candidate stations found. Please ensure data is loaded.", 
                                     showarrow = FALSE)))
     }
     
     if (nrow(candidates) < 2) {
-      return(plotly_empty() %>% 
+      return(plot_ly() %>% 
+             add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
              layout(title = "Insufficient data", 
                     annotations = list(text = "Need at least 2 candidate stations for bootstrap analysis.", 
                                     showarrow = FALSE)))
@@ -1332,7 +1368,8 @@ server <- function(input, output, session) {
       
       return(ggplotly(p))
     }, error = function(e) {
-      return(plotly_empty() %>% 
+      return(plot_ly() %>% 
+             add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
              layout(title = paste("Error:", e$message),
                     annotations = list(text = paste("Error details:", e$message), 
                                     showarrow = FALSE)))
@@ -1343,7 +1380,8 @@ server <- function(input, output, session) {
   output$bootstrap_recommendations_plot <- renderPlotly({
     candidates <- bootstrap_analysis()
     if (is.null(candidates) || nrow(candidates) == 0) {
-      return(plotly_empty() %>% 
+      return(plot_ly() %>% 
+             add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
              layout(title = "No data available",
                     annotations = list(text = "No candidate stations found.", showarrow = FALSE)))
     }
@@ -1354,7 +1392,8 @@ server <- function(input, output, session) {
         head(10)
       
       if (nrow(top_recommendations) == 0) {
-        return(plotly_empty() %>% 
+        return(plot_ly() %>% 
+               add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
                layout(title = "No recommendations",
                       annotations = list(text = "No stations meet the criteria.", showarrow = FALSE)))
       }
@@ -1378,7 +1417,8 @@ server <- function(input, output, session) {
       
       return(ggplotly(p))
     }, error = function(e) {
-      return(plotly_empty() %>% 
+      return(plot_ly() %>% 
+             add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
              layout(title = paste("Error:", e$message),
                     annotations = list(text = paste("Error:", e$message), showarrow = FALSE)))
     })
