@@ -147,6 +147,34 @@ ui <- dashboardPage(
             h3("Primary Research Question"),
             tags$p(tags$strong("What are the best locations to add the planned additional docks and stations, and how much additional revenue would be generated?"), style = "font-size: 16px;"),
           )
+        ),
+
+        #images side by side section
+        fluidRow(
+          box(
+            width = 6,
+            title = "BlueBikes Docks & Stations", 
+            status = "info", 
+            solidHeader = TRUE,
+            collapsible = FALSE,
+            tags$img(src = "Images/bluebikes_dock_key.png", width = "100%", style = "border: 1px solid #ddd;"),
+            br(),
+            tags$p(style = "font-size: 11px; color: #666; font-style: italic; text-align: center; margin-top: 10px;",
+                   "Image credit: ",
+                   tags$a(href = "https://www.cambridgema.gov/CDD/Transportation/gettingaroundcambridge/bikesincambridge/bikeshare", target = "_blank", "Source Name"))
+          ),
+          box(
+            width = 6,
+            title = "Current BlueBikes Station Network", 
+            status = "info", 
+            solidHeader = TRUE,
+            collapsible = FALSE,
+            tags$img(src = "Images/Bluebikes_system_map.png", width = "100%", style = "border: 1px solid #ddd;"),
+            br(),
+            tags$p(style = "font-size: 11px; color: #666; font-style: italic; text-align: center; margin-top: 10px;",
+                   "Image credit: ",
+                   tags$a(href = "https://account.bluebikes.com/map", target = "_blank", "Source Name"))
+          )
         )
       ),
       # Tab 3: Data sources, data processing, and key measures
