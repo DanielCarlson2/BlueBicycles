@@ -584,7 +584,30 @@ ui <- dashboardPage(
         fluidRow(
           box(
             width = 12,
-            title = "Summary: Overall Financial Impact", 
+            title = "Station Recommendations", 
+            status = "info", 
+            solidHeader = TRUE,
+            collapsible = FALSE,
+            tags$p("Review the recommended stations below, then select which ones you plan to implement. The bootstrap analysis will calculate the financial impact for your selected stations only."),
+            DT::dataTableOutput("bootstrap_recommendations_table")
+          )
+        ),
+        fluidRow(
+          box(
+            width = 12,
+            title = "Select Stations to Implement", 
+            status = "warning", 
+            solidHeader = TRUE,
+            collapsible = FALSE,
+            uiOutput("station_selector_ui"),
+            tags$p(tags$strong("Note:"), " Select the stations you plan to implement. The financial impact calculations below will only include your selected stations."),
+            br()
+          )
+        ),
+        fluidRow(
+          box(
+            width = 12,
+            title = "Summary: Financial Impact for Selected Stations", 
             status = "success", 
             solidHeader = TRUE,
             collapsible = FALSE,
@@ -1371,11 +1394,61 @@ server <- function(input, output, session) {
     })
   })
   
-  # Bootstrap summary text
-  output$bootstrap_summary_text <- renderText({
+  # Station selector UI
+  output$station_selector_ui <- renderUI({
     candidates <- bootstrap_analysis()
     if (is.null(candidates) || nrow(candidates) == 0) {
-      return("No candidate stations found for analysis. Please ensure data is loaded and stations meet the criteria (high CV > 50% required for recommendations).")
+      return(tags$p("No candidate stations available. Please ensure data is loaded."))
+    }
+    
+    # Create station labels with net gain for easy identification
+    station_choices <- candidates %>%
+      dplyr::arrange(desc(net_gain)) %>%
+      dplyr::mutate(
+        label = paste0(station_id, " (Net Gain: $", format(round(net_gain, 0), big.mark = ","), "/year)")
+      )
+    
+    selectInput(
+      "selected_stations",
+      "Select Stations to Implement (you can select multiple):",
+      choices = setNames(station_choices$station_id, station_choices$label),
+      selected = NULL,
+      multiple = TRUE,
+      width = "100%"
+    )
+  })
+  
+  # Reactive: Get selected stations only
+  selected_stations_data <- reactive({
+    candidates <- bootstrap_analysis()
+    if (is.null(candidates) || nrow(candidates) == 0) {
+      return(NULL)
+    }
+    
+    # If no stations selected, return all candidates (backward compatibility)
+    if (is.null(input$selected_stations) || length(input$selected_stations) == 0) {
+      return(candidates)
+    }
+    
+    # Filter to only selected stations
+    selected <- candidates %>%
+      dplyr::filter(station_id %in% input$selected_stations)
+    
+    if (nrow(selected) == 0) {
+      return(NULL)
+    }
+    
+    return(selected)
+  })
+  
+  # Bootstrap summary text
+  output$bootstrap_summary_text <- renderText({
+    candidates <- selected_stations_data()
+    if (is.null(candidates) || nrow(candidates) == 0) {
+      if (is.null(input$selected_stations) || length(input$selected_stations) == 0) {
+        return("Please select one or more stations to see financial impact estimates.")
+      }
+      return("No stations selected or selected stations not available. Please select stations from the list above.")
     }
     
     total_net <- sum(candidates$net_gain, na.rm = TRUE)
@@ -1387,7 +1460,7 @@ server <- function(input, output, session) {
   
   # Bootstrap rides summary text
   output$bootstrap_rides_text <- renderText({
-    candidates <- bootstrap_analysis()
+    candidates <- selected_stations_data()
     if (is.null(candidates) || nrow(candidates) == 0) {
       return("No candidate stations found for analysis.")
     }
@@ -1401,13 +1474,19 @@ server <- function(input, output, session) {
   
   # Bootstrap rides CI text
   output$bootstrap_rides_ci_text <- renderText({
-    candidates <- bootstrap_analysis()
+    candidates <- selected_stations_data()
     if (is.null(candidates) || nrow(candidates) == 0) {
       return("No data available for confidence interval calculation.")
     }
     
-    if (nrow(candidates) < 2) {
-      return("Need at least 2 candidate stations for bootstrap confidence interval.")
+    if (nrow(candidates) < 1) {
+      return("No stations selected for analysis.")
+    }
+    
+    if (nrow(candidates) == 1) {
+      # For single station, show point estimate only
+      total_rides <- sum(candidates$est_recovered_trips, na.rm = TRUE)
+      return(paste0("Single station selected. Estimated: ", format(round(total_rides, 0), big.mark = ","), " rides/year (no CI for single station)"))
     }
     
     tryCatch({
@@ -1438,13 +1517,19 @@ server <- function(input, output, session) {
   
   # Bootstrap CI text
   output$bootstrap_ci_text <- renderText({
-    candidates <- bootstrap_analysis()
+    candidates <- selected_stations_data()
     if (is.null(candidates) || nrow(candidates) == 0) {
       return("No data available for confidence interval calculation.")
     }
     
-    if (nrow(candidates) < 2) {
-      return("Need at least 2 candidate stations for bootstrap confidence interval.")
+    if (nrow(candidates) < 1) {
+      return("No stations selected for analysis.")
+    }
+    
+    if (nrow(candidates) == 1) {
+      # For single station, show point estimate only
+      total_net <- sum(candidates$net_gain, na.rm = TRUE)
+      return(paste0("Single station selected. Estimated: $", format(round(total_net, 2), big.mark = ","), "/year (no CI for single station)"))
     }
     
     tryCatch({
@@ -1475,7 +1560,7 @@ server <- function(input, output, session) {
   
   # Bootstrap histogram
   output$bootstrap_histogram <- renderPlotly({
-    candidates <- bootstrap_analysis()
+    candidates <- selected_stations_data()
     if (is.null(candidates) || nrow(candidates) == 0) {
       return(plot_ly() %>% 
              add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
@@ -1484,11 +1569,11 @@ server <- function(input, output, session) {
                                     showarrow = FALSE)))
     }
     
-    if (nrow(candidates) < 2) {
+    if (nrow(candidates) < 1) {
       return(plot_ly() %>% 
              add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
-             layout(title = "Insufficient data", 
-                    annotations = list(text = "Need at least 2 candidate stations for bootstrap analysis.", 
+             layout(title = "No stations selected", 
+                    annotations = list(text = "Please select one or more stations to see bootstrap analysis.", 
                                     showarrow = FALSE)))
     }
     
@@ -1590,7 +1675,7 @@ server <- function(input, output, session) {
   
   # Bootstrap rides histogram
   output$bootstrap_rides_histogram <- renderPlotly({
-    candidates <- bootstrap_analysis()
+    candidates <- selected_stations_data()
     if (is.null(candidates) || nrow(candidates) == 0 || nrow(candidates) < 2) {
       return(plot_ly() %>% 
              add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
@@ -1647,7 +1732,7 @@ server <- function(input, output, session) {
   
   # CV vs Trips scatter plot
   output$bootstrap_cv_vs_trips <- renderPlotly({
-    candidates <- bootstrap_analysis()
+    candidates <- selected_stations_data()
     if (is.null(candidates) || nrow(candidates) == 0) {
       return(plot_ly() %>% 
              add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
@@ -1683,7 +1768,7 @@ server <- function(input, output, session) {
   
   # ROI plot
   output$bootstrap_roi_plot <- renderPlotly({
-    candidates <- bootstrap_analysis()
+    candidates <- selected_stations_data()
     if (is.null(candidates) || nrow(candidates) == 0) {
       return(plot_ly() %>% 
              add_trace(x = NULL, y = NULL, type = 'scatter', mode = 'markers', showlegend = FALSE) %>%
