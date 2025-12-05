@@ -136,16 +136,16 @@ ui <- dashboardPage(
             h3("Background"),
             tags$ul(
               tags$li("Boston BlueBikes is a city wide bike-share system providing sustainable transportation through an intricate network of strategically located bike stations throughout the city."),
-              tags$li("During peak commuting hours,bikes are disproportionally displaced and thus unavailable to riders in parts of the city. To address this, the city of Boston has plans to expand the BlueBikes station network by 2030."),
-              tags$li("We will create a tool to identify stations and areas that are consistently over/under-utilized to determine where additional bikes and stations are most needed."),
+              tags$li("During peak commuting hours, bikes are disproportionally displaced and thus unavailable to riders in parts of the city. To address this, the city of Boston has plans to expand the BlueBikes station network by 2030."),
+              tags$li("We will create a tool to identify stations and areas that are consistently over/under-utilized to determine where additional docks/bikes are most needed."),
               tags$li("We will improve BlueBikes’ financial decisions by connecting station performance and bike demand to missed ride revenue and station installation costs. ")
             ),
             br(),
             h3("Project Goal"),
-            tags$p(tags$strong("Using BlueBikes ride data, we predict the best locations to expand the number of bike docks and new stations to improve the availability of bikes available to users and BlueBike’s revenue. "), style = "font-size: 16px;"),
+            tags$p(tags$strong("Using BlueBikes ride data, we predict the best locations to expand the number of bike docks to improve the availability of bikes available to users and BlueBike’s revenue. "), style = "font-size: 16px;"),
             br(),
             h3("Primary Research Question"),
-            tags$p(tags$strong("What are the best locations to add the planned additional docks and stations, and how much additional revenue would be generated?"), style = "font-size: 16px;"),
+            tags$p(tags$strong("What are the best locations to add the planned additional docks/bikes, and how much additional revenue would be generated?"), style = "font-size: 16px;"),
           )
         ),
 
@@ -153,7 +153,7 @@ ui <- dashboardPage(
         fluidRow(
           box(
             width = 6,
-            title = "BlueBikes Docks & Stations", 
+            title = "BlueBikes Docks Key", 
             status = "info", 
             solidHeader = TRUE,
             collapsible = FALSE,
@@ -195,18 +195,49 @@ ui <- dashboardPage(
             ),
             br(),
             h3("Data Processing"),
-            tags$ul(
-              tags$li("Weekends excluded (focus on commuter patterns)"),
-              tags$li("Extreme weather days excluded (Dec, Jan, Feb)"),
-              tags$li("Limited to Boston city area stations"),
-              tags$li("Aggregated to daily ride counts per station")
+            tags$table(
+              style = "width: 100%; border-collapse: collapse; margin: 15px 0;",
+              tags$thead(
+                tags$tr(
+                  tags$th(style = "border: 1px solid #ddd; padding: 12px; background-color: #f2f2f2; text-align: left; font-weight: bold;",
+                         "Limitations & Processing Steps ")
+                )
+              ),
+              tags$tbody(
+                tags$tr(
+                  tags$td(style = "border: 1px solid #ddd; padding: 12px;",
+                         "Weekends excluded (focus on commuter patterns)")
+                ),
+                tags$tr(
+                  tags$td(style = "border: 1px solid #ddd; padding: 12px;",
+                         "Aggregated to daily ride counts per station")
+                ),
+                tags$tr(
+                  tags$td(style = "border: 1px solid #ddd; padding: 12px;",
+                         "Extreme weather days excluded (Dec, Jan, Feb)")
+                ),
+                tags$tr(
+                  tags$td(style = "border: 1px solid #ddd; padding: 12px;",
+                         "Limited to Boston city area stations")
+                ),
+                tags$tr(
+                  tags$td(style = "border: 1px solid #ddd; padding: 12px;",
+                         "Weekday rush hours: 7-9 AM (morning) and 4-6 PM (evening)")
+                )
+              )
             ),
             br(),
-            h3("Key Measures"),
+            h3("Key Output measures"),
             tags$ul(
               tags$li(tags$strong("Total Count:"), "Number of rides per station per day (unit: N)"),
-              tags$li(tags$strong("Ride Length:"), "Duration of rides (unit: hours)"),
-              tags$li(tags$strong("Process Statistics:"), "Mean, SD, CV, control limits per station")
+              tags$li(tags$strong("Ride Length:"), "Duration of rides (unit: hours)")
+            ),
+            br(),
+            h3("Quanities of Interest (calculated from Key Output measures)"),
+            tags$ul(
+              tags$li(tags$strong("Coefficient of Variation:"), "Variation of each bike station"),
+              tags$li(tags$strong("Mean:"), "Number of rides per station per year (unit: N)"),
+              tags$li(tags$strong("Other Process Statistics:"), "SD & control limits per station")
             )
           )
         )
